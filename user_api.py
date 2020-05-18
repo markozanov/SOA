@@ -25,7 +25,7 @@ class Groups(BaseModel):
     group_list: list
 
 
-@app.get("/")
+@app.get("/service_instance_management")
 def read_root():
     return {"Hello": "World"}
 

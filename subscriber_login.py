@@ -29,8 +29,5 @@ client.subscribe("/login")
 
 client.loop_forever()
 
-
-
-
 # def register_server(user_id, server_id):
 #     MORE MAGIC
