@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import command_publisher
+import random
 
 app = FastAPI()
 
@@ -53,6 +54,17 @@ def execute_command(user_info: UserInfo):
     # CHECK PERMISSION
     command_publisher.run(command, user_id)
     return "Success"
+
+
+# SIMULATION - TEST ONLY
+@app.get("/licenses/{user_id}")
+def confirm_license(user_id: str):
+    number = random.randrange(10)
+    success = False
+    if number > 5:
+        success = True
+    return {"User": user_id,
+            "Response": success}
 
 
 def execute_sharing(server_id, users):

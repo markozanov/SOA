@@ -26,5 +26,5 @@ command = f"""
 """
 
 client.connect("localhost", 1883, 60)
-# client.publish("/login", payload)
-client.publish("/command_output/54654/5646525", command)
+client.publish("/login", payload)
+# client.publish("/command_output/54654/5646525", command)

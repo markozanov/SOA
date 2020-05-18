@@ -1,5 +1,6 @@
 import paho.mqtt.client as mqtt
 import json
+import payment_response as resp
 
 
 def on_connect(client, userdata, flags, rc):
@@ -12,6 +13,7 @@ def on_message(client, userdata, msg):
     print(payload["server_id"])
     user_id = payload["user_id"]
     server_id = payload["server_id"]
+    resp.feedback(user_id, server_id)
 
     # request_to_payment(user_id, server_id)
     # register_server(user_id, server_id)
@@ -27,8 +29,7 @@ client.subscribe("/login")
 
 client.loop_forever()
 
-# def request_to_payment(user_id, server_id):
-#     MAGIC
+
 
 
 # def register_server(user_id, server_id):
