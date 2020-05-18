@@ -1,5 +1,6 @@
 import paho.mqtt.client as mqtt
 import requests
+import db_connection
 import json
 
 
@@ -11,11 +12,22 @@ def on_connect(client, userdata, flags, rc):
 
 
 def feedback(user_id, server_id):
-    response = requests.get(f"http://localhost:8000/licenses/{user_id}").json()
-    user_has_payed = response["Response"]
+    myobj = {'user_id': user_id, 'server_id': server_id}
+    response = requests.post(f"http://localhost:8000/licenses/{user_id}", data=myobj).json()
+    user_has_payed = True
+    valid_to = None
+    if response["detail"] is None:
+        user_has_payed = False
+    else:
+        valid_to = response["valid_to"]
+
+    # Fill DB even if valid_to is None
+    db_connection.input_server(server_id, valid_to)
+
     print(response)
     print(server_id)
     print(user_id)
+    print(valid_to)
     client = mqtt.Client()
     client.on_connect = on_connect
 

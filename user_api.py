@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import command_publisher
 import random
+from datetime import datetime
 
 app = FastAPI()
 
@@ -23,6 +24,11 @@ class UserInfo(BaseModel):
 
 class Groups(BaseModel):
     group_list: list
+
+
+class LicenseBody(BaseModel):
+    user_id: str
+    server_id: str
 
 
 @app.get("/service_instance_management")
@@ -57,14 +63,16 @@ def execute_command(user_info: UserInfo):
 
 
 # SIMULATION - TEST ONLY
-@app.get("/licenses/{user_id}")
-def confirm_license(user_id: str):
+@app.post("/licenses/server")
+def confirm_license(user_id: str, server_id: str):
     number = random.randrange(10)
-    success = False
+    valid_to = str(datetime.now())
     if number > 5:
-        success = True
-    return {"User": user_id,
-            "Response": success}
+        return {"user_id": user_id,
+                "server_id": server_id,
+                "valid_to": valid_to}
+    else:
+        return {"detail": "test error"}
 
 
 def execute_sharing(server_id, users):
