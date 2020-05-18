@@ -16,7 +16,7 @@ def feedback(user_id, server_id):
     response = requests.post(f"http://localhost:8000/licenses/{user_id}", data=myobj).json()
     user_has_payed = True
     valid_to = None
-    if response["detail"] is None:
+    if "detail" in response:
         user_has_payed = False
     else:
         valid_to = response["valid_to"]
