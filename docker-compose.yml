@@ -1,0 +1,39 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:12
+    environment:
+      POSTGRES_PASSWORD: instancemanager
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d
+      - ./db/data:/var/lib/postgresql/data
+    restart: always
+  emqx:
+    image: emqx/emqx
+    volumes:
+      - emqx-data:/opt/emqx/data
+      - emqx-lib:/opt/emqx/lib
+      - ./emqx/emqx_auth_username.conf:/opt/emqx/etc/plugins/emqx_auth_username.conf
+    environment:
+      EMQX_ALLOW_ANONYMOUS: "false"
+      EMQX_LOADED_PLUGINS: "emqx_recon,emqx_retainer,emqx_management,emqx_dashboard,emqx_auth_username"
+    restart: always
+  consul:
+    image: consul
+    ports:
+      - 8500:8500
+    command: agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
+    restart: always
+  instancemanager:
+    image: instancemanager
+    ports:
+      - 5000:5000
+    depends_on:
+      - postgres
+      - emqx
+    restart: always
+
+volumes:
+  logs:
+  emqx-data:
+  emqx-lib:
