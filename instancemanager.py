@@ -116,8 +116,11 @@ def login_subscriber_on_message(client, userdata, msg):
     else:
         valid_to = response['valid_to']
         print(f'updating server active until {valid_to}')
-        loop.run_until_complete(login_connection.execute(
-            'update server_instance set active = $1 where id = $2', valid_to, server_id))
+        try:
+            loop.run_until_complete(login_connection.execute(
+                'update server_instance set active = $1 where id = $2', valid_to, server_id))
+        except Exception as e:
+            print(e)
         print(
             f'publishing login success for user: {user_id}, server: {server_id}')
         login_publish_client.publish(
