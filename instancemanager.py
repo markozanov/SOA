@@ -75,32 +75,42 @@ def get_payment_service_url():
 
 def command_output_on_message(client, userdata, msg):
     payload = json.loads(msg.payload)
+    print(f'command output message payload: {payload}')
     _, topic, user_id, server_id = msg.topic.split("/")
     stopped = payload['final'] or payload['killed']
     if stopped:
+        print('stopping command')
         loop.run_until_complete(command_output_connection.execute(
             'update command set running = False where id = $1', payload['command_id']))
 
 
 def login_subscriber_on_message(client, userdata, msg):
     payload = json.loads(msg.payload.decode('UTF-8'))
+    print(f'login message payload: {payload}')
     user_id = payload['user_id']
     server_id = payload['server_id']
     epoch = str(datetime.fromtimestamp(0))
+    print(f'inserting server instance {server_id}')
     loop.run_until_complete(login_connection.execute(
         'insert into server_instance (server_id, active) values ($1, $2)', server_id, epoch))
+    print(f'inserting user server ({user_id}, {server_id})')
     loop.run_until_complete(login_connection.execute(
         'insert into user_server (user_id, server_id) values ($1, $2)', user_id, server_id))
     url = get_payment_service_url()
     payload = {'user_id': user_id, 'server_id': server_id}
+    print(f'contacting payment at {url} with payload {payload}')
     response = requests.post(url, data=payload).json()
+    print(f'{response}')
     if 'detail' in response:
+        print(f'publishing login failure for user: {user_id}, server: {server_id}')
         login_publish_client.publish(
             f'/login/{user_id}/{server_id}', 'Failure')
     else:
         valid_to = response['valid_to']
+        print(f'updating server active until {valid_to}')
         loop.run_until_complete(login_connection.execute(
             'update server_instance set active = $1 where id = $2', valid_to, server_id))
+        print(f'publishing login success for user: {user_id}, server: {server_id}')
         login_publish_client.publish(
             f'/login/{user_id}/{server_id}', 'Success')
 
@@ -250,6 +260,7 @@ if __name__ == '__main__':
     ip = socket.gethostbyname('instancemanager')
     service.register('instancemanager', service_id='instancemanager',
                      address=ip, port=5000, check=check)
+    print('registered with consul')
 
     command_output_client = mqtt.Client()
     command_output_client.username_pw_set('user_01', 'passwd01')
@@ -257,6 +268,7 @@ if __name__ == '__main__':
     command_output_client.connect('emqx')
     command_output_client.subscribe('/command_output/#')
     command_output_client.loop_start()
+    print('subscribed to /command_output/#')
 
     login_subscriber_client = mqtt.Client()
     login_subscriber_client.username_pw_set('user_01', 'passwd01')
@@ -264,5 +276,7 @@ if __name__ == '__main__':
     login_subscriber_client.connect('emqx')
     login_subscriber_client.subscribe('/login')
     login_subscriber_client.loop_start()
+    print('subscribed to /login')
 
+    print('starting server')
     uvicorn.run(app, host='0.0.0.0', port=5000, log_level='info')
