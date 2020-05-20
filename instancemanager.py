@@ -88,21 +88,29 @@ def login_subscriber_on_message(client, userdata, msg):
     payload = json.loads(msg.payload.decode('UTF-8'))
     print(f'login message payload: {payload}')
     user_id = payload['user_id']
-    server_id = payload['server_id']
-    epoch = str(datetime.fromtimestamp(0))
+    server_id = payload['client_id']
+    epoch = datetime.fromtimestamp(0)
     print(f'inserting server instance {server_id}')
-    loop.run_until_complete(login_connection.execute(
-        'insert into server_instance (server_id, active) values ($1, $2)', server_id, epoch))
+    try:
+        loop.run_until_complete(login_connection.execute(
+            'insert into server_instance (id, active) values ($1, $2)', server_id, epoch))
+    except Exception as e:
+        print(e)
     print(f'inserting user server ({user_id}, {server_id})')
-    loop.run_until_complete(login_connection.execute(
-        'insert into user_server (user_id, server_id) values ($1, $2)', user_id, server_id))
+    try:
+        loop.run_until_complete(login_connection.execute(
+            'insert into user_server (user_id, server_id) values ($1, $2)', user_id, server_id))
+    except Exception as e:
+        print(e)
+    print('contacting payment')
     url = get_payment_service_url()
     payload = {'user_id': user_id, 'server_id': server_id}
     print(f'contacting payment at {url} with payload {payload}')
     response = requests.post(url, data=payload).json()
     print(f'{response}')
     if 'detail' in response:
-        print(f'publishing login failure for user: {user_id}, server: {server_id}')
+        print(
+            f'publishing login failure for user: {user_id}, server: {server_id}')
         login_publish_client.publish(
             f'/login/{user_id}/{server_id}', 'Failure')
     else:
@@ -110,7 +118,8 @@ def login_subscriber_on_message(client, userdata, msg):
         print(f'updating server active until {valid_to}')
         loop.run_until_complete(login_connection.execute(
             'update server_instance set active = $1 where id = $2', valid_to, server_id))
-        print(f'publishing login success for user: {user_id}, server: {server_id}')
+        print(
+            f'publishing login success for user: {user_id}, server: {server_id}')
         login_publish_client.publish(
             f'/login/{user_id}/{server_id}', 'Success')
 
@@ -256,7 +265,7 @@ async def command_stop(sc: StopCommand):
 if __name__ == '__main__':
     service = agent.service
     check = Check.http('http://instancemanager:5000/',
-                       interval='10s', timeout='5s', deregister='1s')
+                       interval='10s', timeout='5s', deregister='10s')
     ip = socket.gethostbyname('instancemanager')
     service.register('instancemanager', service_id='instancemanager',
                      address=ip, port=5000, check=check)
